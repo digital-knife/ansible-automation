@@ -102,7 +102,9 @@ def generate_single_target_inventory(target):
     logger.info(f"Generating inventory for target: {target}")
 
     # Create temp inventory file
-    inventory_content = f"""[targets] {target} ansible_user=ec2-user ansible_ssh_common_args='-o StrictHostKeyChecking=no'"""
+    inventory_content = f"""[targets]
+{target} ansible_connection=local ansible_python_interpreter=/usr/bin/python3
+"""
 
     # write to temp file
     temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".ini", delete=False)
@@ -143,6 +145,7 @@ def determine_inventory(args):
 def run_ansible_playbook(inventory_path, args):
     """Execute playbooks with args"""
     playbook = "ansible/playbooks/main.yml"
+
     if not Path(playbook).exists():
         logger.error(f"Playbook not found: {playbook}")
         sys.exit(1)
@@ -164,7 +167,9 @@ def run_ansible_playbook(inventory_path, args):
     logger.info("=" * 60)
 
     try:
-        result = subprocess.run(cmd, check=True, env=os.environ.copy())
+        env = os.environ.copy()
+        env["ANSIBLE_ROLES_PATH"] = "./ansible/roles"
+        result = subprocess.run(cmd, check=True, env=env)
         logger.info("=" * 60)
         logger.info("Hardening completed successfully!")
         return True
@@ -216,7 +221,29 @@ def main():
         sys.exit(1)
 
     if args.validate:
-        logger.info("Validation requested but not yet implemented")
+        logger.info("=" * 60)
+        logger.info("Starting validation...")
+        logger.info("=" * 60)
+
+        validate_cmd = ["python3", "scripts/validate.py", "--inventory", inventory_path]
+
+        try:
+            subprocess.run(validate_cmd, check=True)
+            logger.info("Validation passed!")
+
+            # Generate HTML report
+            logger.info("Generating HTML report...")
+            report_cmd = [
+                "python3",
+                "scripts/report.py",
+                "reports/validation-report.json",
+            ]
+            subprocess.run(report_cmd, check=True)
+            logger.info("Report generated: reports/validation-report.html")
+
+        except subprocess.CalledProcessError:
+            logger.error("Validation failed!")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
