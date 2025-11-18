@@ -1,0 +1,41 @@
+---
+- name: Security Hardening Baseline
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Display target information
+      debug:
+        msg: |
+          Hardening target: {{ inventory_hostname }}
+          OS Family: {{ ansible_os_family }}
+          Distribution: {{ ansible_distribution }}
+          Version: {{ ansible_distribution_version }}
+
+    - name: Validate supported OS
+      assert:
+        that:
+          - ansible_os_family in ['RedHat', 'Debian']
+        fail_msg: "Unsupported OS: {{ ansible_os_family }}. Only RHEL/CentOS/Amazon Linux and Debian/Ubuntu are supported."
+        success_msg: "OS validated: {{ ansible_distribution }}"
+
+  roles:
+    - role: ssh-hardening
+      when: harden_ssh | default(true)
+
+    - role: firewall
+      when: harden_firewall | default(true)
+
+  post_tasks:
+    - name: Summary
+      debug:
+        msg: |
+          ===================================
+          Security Hardening Complete!
+          ===================================
+          Target: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Roles Applied:
+            - SSH Hardening: {{ harden_ssh | default(true) }}
+            - Firewall: {{ harden_firewall | default(true) }}

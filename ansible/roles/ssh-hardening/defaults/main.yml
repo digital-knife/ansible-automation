@@ -1,0 +1,32 @@
+---
+# SSH Hardening Default Variables
+
+# SSH Port
+ssh_port: 22
+
+# Disable root login
+ssh_permit_root_login: "no"
+
+# Disable password authentication (key-only)
+ssh_password_authentication: "no"
+
+# Disable empty passwords
+ssh_permit_empty_passwords: "no"
+
+# Disable X11 forwarding
+ssh_x11_forwarding: "no"
+
+# Maximum authentication attempts
+ssh_max_auth_tries: 3
+
+# Client alive interval (seconds)
+ssh_client_alive_interval: 300
+
+# Client alive count max
+ssh_client_alive_count_max: 2
+
+# Protocol version (2 only)
+ssh_protocol: 2
+
+# Log level
+ssh_log_level: "INFO"

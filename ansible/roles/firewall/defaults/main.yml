@@ -1,0 +1,15 @@
+---
+# Firewall Hardening Default Variables
+
+# Allowed SSH port
+firewall_ssh_port: 22
+
+# Allowed HTTP/HTTPS ports
+firewall_allow_http: true
+firewall_allow_https: true
+
+# Additional allowed ports (list)
+firewall_allowed_ports:
+  - 22/tcp   # SSH
+  - 80/tcp   # HTTP
+  - 443/tcp  # HTTPS

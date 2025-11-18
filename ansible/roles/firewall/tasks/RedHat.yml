@@ -1,0 +1,24 @@
+---
+- name: Install firewalld (RHEL/CentOS/Amazon Linux)
+  package:
+    name: firewalld
+    state: present
+
+- name: Start and enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: Configure firewall rules
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ firewall_allowed_ports }}"
+  notify: reload firewalld
+
+- name: Set default zone to drop
+  command: firewall-cmd --set-default-zone=drop
+  changed_when: false
