@@ -16,3 +16,15 @@ reports/*.json
 # Temp files
 *.log
 .DS_Store
+
+# SSH keys
+.ssh/
+*.pem
+*.key
+!*.key.pub
+
+# Docker test environment
+tests/
+
+# Test inventories
+ansible/inventory/docker.ini
