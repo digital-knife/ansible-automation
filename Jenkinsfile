@@ -1,8 +1,17 @@
 pipeline {
     agent {
-        docker {
-            image 'python:3.9-slim'
-            args '-u root:root'
+        kubernetes {
+            inheritFrom 'terraform-cloud-provisioner'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: python
+    image: python:3.9-slim
+    command: ['cat']
+    tty: true
+'''
         }
     }
     
@@ -55,85 +64,84 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
-                echo "=================================================="
-                echo "Security Hardening Pipeline"
-                echo "=================================================="
-                echo "Target Mode: ${params.target_mode}"
-                
-                script {
-                    if (params.target_mode == 'manual') {
-                        echo "Manual Target: ${params.manual_target}"
-                    } else if (params.target_mode == 'dynamic_aws') {
-                        echo "AWS Tag Filter: ${params.aws_tag_filter}"
-                    } else {
-                        echo "Static Inventory: ${params.static_inventory_path}"
+                container('python') {
+                    echo "=================================================="
+                    echo "Security Hardening Pipeline"
+                    echo "=================================================="
+                    echo "Target Mode: ${params.target_mode}"
+                    
+                    script {
+                        if (params.target_mode == 'manual') {
+                            echo "Manual Target: ${params.manual_target}"
+                        } else if (params.target_mode == 'dynamic_aws') {
+                            echo "AWS Tag Filter: ${params.aws_tag_filter}"
+                        } else {
+                            echo "Static Inventory: ${params.static_inventory_path}"
+                        }
                     }
+                    
+                    echo "Dry Run: ${params.dry_run}"
+                    echo "Skip Validation: ${params.skip_validation}"
+                    echo "=================================================="
+                    
+                    // Install system dependencies
+                    sh '''
+                        apt-get update -qq
+                        apt-get install -y -qq openssh-client sshpass > /dev/null 2>&1
+                    '''
+                    
+                    // Setup Python environment
+                    sh '''
+                        python3 -m pip install --upgrade pip > /dev/null 2>&1
+                        pip install -r requirements.txt
+                    '''
+                    
+                    echo "✓ Dependencies installed"
                 }
-                
-                echo "Dry Run: ${params.dry_run}"
-                echo "Skip Validation: ${params.skip_validation}"
-                echo "=================================================="
-                
-                // Install system dependencies
-                sh '''
-                    apt-get update -qq
-                    apt-get install -y -qq openssh-client sshpass > /dev/null 2>&1
-                '''
-                
-                // Setup Python environment
-                sh '''
-                    python3 -m pip install --upgrade pip > /dev/null 2>&1
-                    pip install -r requirements.txt
-                '''
-                
-                echo "✓ Dependencies installed"
             }
         }
         
         stage('Validate Parameters') {
             steps {
-                script {
-                    if (params.target_mode == 'manual' && !params.manual_target) {
-                        error("Manual mode requires 'manual_target' parameter")
+                container('python') {
+                    script {
+                        if (params.target_mode == 'manual' && !params.manual_target) {
+                            error("Manual mode requires 'manual_target' parameter")
+                        }
+                        if (params.target_mode == 'static_inventory' && !params.static_inventory_path) {
+                            error("Static inventory mode requires 'static_inventory_path' parameter")
+                        }
                     }
-                    if (params.target_mode == 'static_inventory' && !params.static_inventory_path) {
-                        error("Static inventory mode requires 'static_inventory_path' parameter")
-                    }
+                    echo "✓ Parameters validated"
                 }
-                echo "✓ Parameters validated"
             }
         }
         
         stage('Run Hardening') {
             steps {
-                script {
-                    def hardeningCmd = "python3 harden.py"
-                    
-                    // Build command based on mode
-                    if (params.target_mode == 'manual') {
-                        hardeningCmd += " --target ${params.manual_target}"
-                    } else if (params.target_mode == 'dynamic_aws') {
-                        hardeningCmd += " --dynamic-aws"
-                        env.TAG_FILTER = params.aws_tag_filter
-                    } else {
-                        hardeningCmd += " --inventory ${params.static_inventory_path}"
+                container('python') {
+                    script {
+                        def hardeningCmd = "python3 harden.py"
+                        
+                        // Build command based on mode
+                        if (params.target_mode == 'manual') {
+                            hardeningCmd += " --target ${params.manual_target}"
+                        } else if (params.target_mode == 'dynamic_aws') {
+                            hardeningCmd += " --dynamic-aws"
+                            env.TAG_FILTER = params.aws_tag_filter
+                        } else {
+                            hardeningCmd += " --inventory ${params.static_inventory_path}"
+                        }
+                        
+                        // Add optional flags
+                        if (params.dry_run) {
+                            hardeningCmd += " --dry-run"
+                        }
+                        
+                        echo "Executing: ${hardeningCmd}"
+                        
+                        sh hardeningCmd
                     }
-                    
-                    // Add optional flags
-                    if (params.dry_run) {
-                        hardeningCmd += " --dry-run"
-                    }
-                    
-                    // Don't add --validate here, we handle it in separate stage
-                    
-                    echo "Executing: ${hardeningCmd}"
-                    
-                    // Wrap in credentials if needed (uncomment when SSH key is configured)
-                    // withCredentials([sshUserPrivateKey(credentialsId: 'ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                    //     sh "${hardeningCmd} --private-key \$SSH_KEY"
-                    // }
-                    
-                    sh hardeningCmd
                 }
             }
         }
@@ -143,23 +151,25 @@ pipeline {
                 expression { params.skip_validation == false }
             }
             steps {
-                script {
-                    def inventoryPath
-                    
-                    if (params.target_mode == 'manual') {
-                        // Use temp inventory created by harden.py
-                        inventoryPath = sh(
-                            script: "ls /tmp/ansible-*.ini 2>/dev/null | head -1 || echo 'ansible/inventory/local.ini'",
-                            returnStdout: true
-                        ).trim()
-                    } else if (params.target_mode == 'dynamic_aws') {
-                        inventoryPath = 'ansible/inventory/aws_ec2.yml'
-                    } else {
-                        inventoryPath = params.static_inventory_path
+                container('python') {
+                    script {
+                        def inventoryPath
+                        
+                        if (params.target_mode == 'manual') {
+                            // Use temp inventory created by harden.py
+                            inventoryPath = sh(
+                                script: "ls /tmp/ansible-*.ini 2>/dev/null | head -1 || echo 'ansible/inventory/local.ini'",
+                                returnStdout: true
+                            ).trim()
+                        } else if (params.target_mode == 'dynamic_aws') {
+                            inventoryPath = 'ansible/inventory/aws_ec2.yml'
+                        } else {
+                            inventoryPath = params.static_inventory_path
+                        }
+                        
+                        echo "Running validation against: ${inventoryPath}"
+                        sh "python3 scripts/validate.py --inventory ${inventoryPath}"
                     }
-                    
-                    echo "Running validation against: ${inventoryPath}"
-                    sh "python3 scripts/validate.py --inventory ${inventoryPath}"
                 }
             }
         }
@@ -169,8 +179,10 @@ pipeline {
                 expression { params.skip_validation == false }
             }
             steps {
-                sh 'python3 scripts/report.py reports/validation-report.json'
-                echo "✓ HTML report generated"
+                container('python') {
+                    sh 'python3 scripts/report.py reports/validation-report.json'
+                    echo "✓ HTML report generated"
+                }
             }
         }
     }
