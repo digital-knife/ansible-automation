@@ -140,7 +140,14 @@ spec:
                         
                         echo "Executing: ${hardeningCmd}"
                         
-                        sh hardeningCmd
+                        // Copy SSH key from credential
+                        withCredentials([file(credentialsId: 'docker-ssh-key', variable: 'SSH_KEY')]) {
+                            sh """
+                                cp \$SSH_KEY /tmp/ssh-key
+                                chmod 600 /tmp/ssh-key
+                                ${hardeningCmd}
+                            """
+                        }
                     }
                 }
             }
