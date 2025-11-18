@@ -95,6 +95,8 @@ spec:
                         python3 -m pip install --upgrade pip > /dev/null 2>&1
                         pip install -r requirements.txt
                     '''
+                    // Install Ansible collections
+                    sh 'ansible-galaxy collection install -r ansible/requirements.yml
                     
                     echo "✓ Dependencies installed"
                 }
