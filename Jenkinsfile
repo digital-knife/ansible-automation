@@ -85,17 +85,17 @@ spec:
                     echo "=================================================="
                     
                     // Install system dependencies
-                    sh '''
+                    sh """
                         apt-get update -qq
                         apt-get install -y -qq openssh-client sshpass > /dev/null 2>&1
-                    '''
+                    """
                     
                     // Setup Python environment
-                    sh '''
+                    sh """
                         python3 -m pip install --upgrade pip > /dev/null 2>&1
                         pip install -r requirements.txt
                         ansible-galaxy collection install -r ansible/requirements.yml
-                    '''
+                    """
                     
                     echo "✓ Dependencies installed"
                 }
