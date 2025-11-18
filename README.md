@@ -1,110 +1,65 @@
 # Security Hardening Automation
 
-Automated security baseline configuration for Linux systems with CIS compliance checks.
+Automated Linux security baseline configuration with CIS compliance validation.
 
 ## Features
 
-- **Multi-platform support:** RHEL/CentOS/Amazon Linux, Ubuntu/Debian
-- **CIS baseline controls:** SSH hardening, firewall configuration
-- **Multiple deployment modes:**
-  - Standalone execution (bash wrapper)
-  - Jenkins CI/CD pipeline
-  - Docker test environment
-- **Validation & reporting:** Automated compliance scanning with HTML reports
-- **Flexible targeting:**
-  - Single target (IP/hostname/EC2 instance-id)
-  - Static inventory files
-  - AWS dynamic inventory (tag-based discovery)
-
-## Prerequisites
-
-- Python 3.9+
-- Ansible 2.12+
-- SSH access to target systems
-- (Optional) Jenkins with Kubernetes plugin
-- (Optional) AWS credentials for dynamic inventory
+- Multi-platform: RHEL/CentOS/Amazon Linux, Ubuntu/Debian
+- SSH hardening and firewall configuration
+- Standalone or Jenkins pipeline execution
+- Automated validation with HTML reports
+- Flexible targeting: single host, inventory file, or AWS dynamic discovery
 
 ## Quick Start
-
-### Local Execution
 ```bash
-# Clone and setup
 git clone https://github.com/digital-knife/security-hardening.git
 cd security-hardening
 ./setup.sh
 
-# Harden a single target
+# Harden a target
 ./harden.sh --target 10.0.1.50 --validate
 
 # Use inventory file
 ./harden.sh --inventory ansible/inventory/production.ini --validate
-
-# Dry run (no changes)
-./harden.sh --target 10.0.1.50 --dry-run
 ```
-
-### Jenkins Pipeline
-
-1. Create new Pipeline job
-2. Configure SCM: `https://github.com/digital-knife/security-hardening.git`
-3. Set Script Path: `Jenkinsfile`
-4. Add SSH key credential: ID `docker-ssh-key`
-5. Run with parameters:
-   - Target mode: manual/dynamic_aws/static_inventory
-   - Inventory path or target IP
-   - Enable/disable validation
 
 ## Project Structure
 ```
-security-hardening/
-├── ansible/
-│   ├── playbooks/
-│   │   └── main.yml           # Main hardening playbook
-│   ├── roles/
-│   │   ├── ssh-hardening/     # SSH CIS baseline
-│   │   └── firewall/          # UFW/firewalld configuration
-│   ├── inventory/             # Target inventories
-│   └── requirements.yml       # Ansible collections
-├── scripts/
-│   ├── validate.py            # Compliance validation
-│   └── report.py              # HTML report generation
-├── tests/
-│   └── docker-compose.yml     # Local test environment
-├── harden.py                  # Main orchestration script
-├── harden.sh                  # Wrapper with dependency checks
-└── Jenkinsfile                # CI/CD pipeline definition
+ansible/
+├── playbooks/main.yml          # Main hardening playbook
+├── roles/
+│   ├── ssh-hardening/          # SSH CIS controls
+│   └── firewall/               # Firewall rules
+└── inventory/                  # Target definitions
+
+scripts/
+├── validate.py                 # Compliance checks
+└── report.py                   # HTML report generator
+
+tests/docker-compose.yml        # Local test environment
+harden.py                       # Main orchestration
+Jenkinsfile                     # CI/CD pipeline
 ```
 
 ## Hardening Controls
 
-### SSH Configuration
-- Root login disabled
-- Password authentication disabled
-- Empty passwords disabled
-- X11 forwarding disabled
-- Max auth tries: 3
-- Client alive interval: 300s
+**SSH:** Disable root login, disable password auth, limit retries, configure timeouts
 
-### Firewall
-- Default deny incoming
-- Allow SSH, HTTP, HTTPS
-- Configurable additional ports
+**Firewall:** Default deny, allow SSH/HTTP/HTTPS
 
-## Testing
-
-### Docker Test Environment
+## Testing Locally
 ```bash
-# Start test container
-cd tests
-docker-compose up -d
-
-# Run hardening
-cd ..
+cd tests && docker-compose up -d
 ./harden.sh --inventory ansible/inventory/docker.ini --validate
+firefox reports/validation-report.html
+```
 
-## Validation Reports
+## Jenkins Pipeline
 
-After hardening, validation generates:
-- `reports/validation-report.json` - Machine-readable results
-- `reports/validation-report.html` - Human-readable dashboard
-- `reports/hardening.log` - Execution logs
+1. Create Pipeline job pointing to this repo
+2. Add SSH credential with ID `docker-ssh-key`
+3. Build with parameters (target mode, inventory path)
+
+## Configuration
+
+Customize defaults in `ansible/roles/*/defaults/main.yml`
