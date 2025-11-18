@@ -102,5 +102,9 @@ docker-compose up -d
 cd ..
 ./harden.sh --inventory ansible/inventory/docker.ini --validate
 
-# View results
-firefox reports/validation-report.html
+## Validation Reports
+
+After hardening, validation generates:
+- `reports/validation-report.json` - Machine-readable results
+- `reports/validation-report.html` - Human-readable dashboard
+- `reports/hardening.log` - Execution logs
