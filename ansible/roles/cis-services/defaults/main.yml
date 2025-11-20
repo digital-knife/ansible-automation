@@ -1,0 +1,26 @@
+---
+# CIS Level 1 - Section 2: Services
+
+# 2.1.x Special purpose services
+cis_services_disable_autofs: true
+cis_services_disable_avahi: true
+cis_services_disable_cups: true
+cis_services_disable_dhcpd: true
+cis_services_disable_slapd: true
+cis_services_disable_nfs: true
+cis_services_disable_rpcbind: true
+cis_services_disable_named: true
+cis_services_disable_vsftpd: true
+cis_services_disable_httpd: true
+cis_services_disable_dovecot: true
+cis_services_disable_smb: true
+cis_services_disable_squid: true
+cis_services_disable_snmpd: true
+cis_services_disable_rsync: true
+
+# 2.2.x Client services
+cis_services_disable_ypbind: true
+cis_services_disable_rsh_client: true
+cis_services_disable_talk_client: true
+cis_services_disable_telnet_client: true
+cis_services_disable_ldap_client: true

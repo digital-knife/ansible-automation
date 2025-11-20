@@ -1,0 +1,182 @@
+---
+- name: Configure password requirements
+  block:
+    - name: Install pam_pwquality (RHEL/CentOS)
+      package:
+        name: libpwquality
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install pam_pwquality (Ubuntu/Debian)
+      package:
+        name: libpam-pwquality
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Set password minimum length
+      lineinfile:
+        path: /etc/security/pwquality.conf
+        regexp: '^#?\s*minlen\s*='
+        line: "minlen = {{ cis_access_password_min_length }}"
+      when: cis_access_password_min_length is defined
+
+    - name: Set password complexity requirements
+      lineinfile:
+        path: /etc/security/pwquality.conf
+        regexp: "^#?\\s*{{ item.key }}\\s*="
+        line: "{{ item.key }} = -1"
+      loop:
+        - { key: 'dcredit' }
+        - { key: 'ucredit' }
+        - { key: 'ocredit' }
+        - { key: 'lcredit' }
+      when: cis_access_password_min_complexity is defined
+
+    - name: Set password retry limit
+      lineinfile:
+        path: /etc/security/pwquality.conf
+        regexp: '^#?\s*retry\s*='
+        line: "retry = {{ cis_access_password_retry }}"
+      when: cis_access_password_retry is defined
+
+- name: Configure password history
+  block:
+    - name: Set password history in PAM (RHEL/CentOS)
+      lineinfile:
+        path: /etc/pam.d/system-auth
+        regexp: '^password\s+sufficient\s+pam_unix.so'
+        line: "password    sufficient    pam_unix.so sha512 shadow remember={{ cis_access_password_history_count }}"
+        backrefs: yes
+      when: 
+        - ansible_os_family == "RedHat"
+        - cis_access_password_history_count is defined
+
+    - name: Set password history in PAM (Ubuntu/Debian)
+      lineinfile:
+        path: /etc/pam.d/common-password
+        regexp: '^password\s+\[success=1 default=ignore\]\s+pam_unix.so'
+        line: "password        [success=1 default=ignore]      pam_unix.so obscure sha512 remember={{ cis_access_password_history_count }}"
+        backrefs: yes
+      when: 
+        - ansible_os_family == "Debian"
+        - cis_access_password_history_count is defined
+
+- name: Configure password aging
+  block:
+    - name: Set password max days in login.defs
+      lineinfile:
+        path: /etc/login.defs
+        regexp: '^PASS_MAX_DAYS'
+        line: "PASS_MAX_DAYS   {{ cis_access_password_max_days }}"
+      when: cis_access_password_max_days is defined
+
+    - name: Set password min days in login.defs
+      lineinfile:
+        path: /etc/login.defs
+        regexp: '^PASS_MIN_DAYS'
+        line: "PASS_MIN_DAYS   {{ cis_access_password_min_days }}"
+      when: cis_access_password_min_days is defined
+
+    - name: Set password warn days in login.defs
+      lineinfile:
+        path: /etc/login.defs
+        regexp: '^PASS_WARN_AGE'
+        line: "PASS_WARN_AGE   {{ cis_access_password_warn_days }}"
+      when: cis_access_password_warn_days is defined
+
+- name: Lock system accounts
+  block:
+    - name: Get list of system accounts
+      shell: "awk -F: '($3 < 1000) {print $1}' /etc/passwd | grep -v root"
+      register: system_accounts
+      changed_when: false
+      failed_when: false
+      when: cis_access_lock_system_accounts | default(true)
+
+    - name: Lock system accounts
+      user:
+        name: "{{ item }}"
+        shell: /usr/sbin/nologin
+        password_lock: yes
+      loop: "{{ system_accounts.stdout_lines }}"
+      when: 
+        - cis_access_lock_system_accounts | default(true)
+        - system_accounts.stdout_lines is defined
+      failed_when: false
+
+- name: Ensure root GID is 0
+  user:
+    name: root
+    group: root
+  when: cis_access_root_gid | default(true)
+
+- name: Set inactive password lock days
+  block:
+    - name: Configure inactive account lock
+      lineinfile:
+        path: /etc/default/useradd
+        regexp: '^INACTIVE='
+        line: "INACTIVE={{ cis_access_inactive_account_days }}"
+      when: cis_access_inactive_account_days is defined
+
+    - name: Find users with no inactive lock
+      shell: |
+        awk -F: '($2 != "!" && $2 != "*" && $3 >= 1000) {print $1}' /etc/shadow
+      register: active_users
+      changed_when: false
+      failed_when: false
+      when: cis_access_inactive_account_days is defined
+
+    - name: Set inactive lock on existing users
+      shell: "chage --inactive {{ cis_access_inactive_account_days }} {{ item }}"
+      loop: "{{ active_users.stdout_lines }}"
+      when: 
+        - cis_access_inactive_account_days is defined
+        - active_users.stdout_lines is defined
+      changed_when: false
+      failed_when: false
+
+- name: Configure shell timeout
+  block:
+    - name: Set TMOUT in /etc/profile
+      lineinfile:
+        path: /etc/profile
+        regexp: '^export TMOUT='
+        line: "export TMOUT={{ cis_access_shell_timeout }}"
+        insertafter: EOF
+      when: cis_access_shell_timeout is defined
+
+    - name: Set TMOUT in /etc/bashrc (RHEL/CentOS)
+      lineinfile:
+        path: /etc/bashrc
+        regexp: '^export TMOUT='
+        line: "export TMOUT={{ cis_access_shell_timeout }}"
+        insertafter: EOF
+      when: 
+        - cis_access_shell_timeout is defined
+        - ansible_os_family == "RedHat"
+
+    - name: Set TMOUT in /etc/bash.bashrc (Ubuntu/Debian)
+      lineinfile:
+        path: /etc/bash.bashrc
+        regexp: '^export TMOUT='
+        line: "export TMOUT={{ cis_access_shell_timeout }}"
+        insertafter: EOF
+      when: 
+        - cis_access_shell_timeout is defined
+        - ansible_os_family == "Debian"
+
+- name: Restrict su command
+  block:
+    - name: Ensure wheel/sudo group exists
+      group:
+        name: "{{ 'wheel' if ansible_os_family == 'RedHat' else 'sudo' }}"
+        state: present
+      when: cis_access_restrict_su | default(true)
+
+    - name: Restrict su to wheel/sudo group
+      lineinfile:
+        path: /etc/pam.d/su
+        regexp: '^#?auth\s+required\s+pam_wheel.so'
+        line: "auth            required        pam_wheel.so use_uid group={{ 'wheel' if ansible_os_family == 'RedHat' else 'sudo' }}"
+      when: cis_access_restrict_su | default(true)

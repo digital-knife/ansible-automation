@@ -21,6 +21,22 @@
         success_msg: "OS validated: {{ ansible_distribution }}"
 
   roles:
+    
+    - role: cis-filesystem
+      when: cis_filesystem_enable | default(true)
+
+    - role: cis-network
+      when: cis_network_enable | default(true)
+
+    - role: cis-services
+      when: cis_services_enable | default(true)
+
+    - role: cis-logging
+      when: cis_logging_enable | default(true)
+     
+    - role: cis-access
+      when: cis_access_enable | default(true)
+   
     - role: ssh-hardening
       when: harden_ssh | default(true)
 

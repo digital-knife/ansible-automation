@@ -1,0 +1,77 @@
+---
+services_to_disable:
+  - name: autofs
+    package: autofs
+    condition: "{{ cis_services_disable_autofs }}"
+    
+  - name: avahi-daemon
+    package: avahi-daemon
+    condition: "{{ cis_services_disable_avahi }}"
+    
+  - name: cups
+    package: cups
+    condition: "{{ cis_services_disable_cups }}"
+    
+  - name: isc-dhcp-server
+    package: isc-dhcp-server
+    condition: "{{ cis_services_disable_dhcpd }}"
+    
+  - name: slapd
+    package: slapd
+    condition: "{{ cis_services_disable_slapd }}"
+    
+  - name: nfs-server
+    package: nfs-kernel-server
+    condition: "{{ cis_services_disable_nfs }}"
+    
+  - name: rpcbind
+    package: rpcbind
+    condition: "{{ cis_services_disable_rpcbind }}"
+    
+  - name: bind9
+    package: bind9
+    condition: "{{ cis_services_disable_named }}"
+    
+  - name: vsftpd
+    package: vsftpd
+    condition: "{{ cis_services_disable_vsftpd }}"
+    
+  - name: apache2
+    package: apache2
+    condition: "{{ cis_services_disable_httpd }}"
+    
+  - name: dovecot
+    package: dovecot-core
+    condition: "{{ cis_services_disable_dovecot }}"
+    
+  - name: smbd
+    package: samba
+    condition: "{{ cis_services_disable_smb }}"
+    
+  - name: squid
+    package: squid
+    condition: "{{ cis_services_disable_squid }}"
+    
+  - name: snmpd
+    package: snmpd
+    condition: "{{ cis_services_disable_snmpd }}"
+    
+  - name: rsync
+    package: rsync
+    condition: "{{ cis_services_disable_rsync }}"
+    
+  - name: nis
+    package: nis
+    condition: "{{ cis_services_disable_ypbind }}"
+    
+  - name: rsh-client
+    package: rsh-client
+    condition: "{{ cis_services_disable_rsh_client }}"
+    
+  - name: talk
+    package: talk
+    condition: "{{ cis_services_disable_talk_client }}"
+    
+  - name: telnet
+    package: telnet
+    condition: "{{ cis_services_disable_telnet_client }}"

@@ -1,0 +1,35 @@
+---
+# CIS Level 1 - Section 1: Filesystem Configuration
+
+# 1.1.1.x Disable unused filesystems
+cis_filesystem_disable_cramfs: true
+cis_filesystem_disable_freevxfs: true
+cis_filesystem_disable_jffs2: true
+cis_filesystem_disable_hfs: true
+cis_filesystem_disable_hfsplus: true
+cis_filesystem_disable_udf: true
+cis_filesystem_disable_usb_storage: true
+
+# 1.1.2-1.1.5 Ensure /tmp filesystem options
+cis_filesystem_tmp_nodev: true
+cis_filesystem_tmp_nosuid: true
+cis_filesystem_tmp_noexec: true
+
+# 1.1.6-1.1.9 Ensure /var/tmp filesystem options
+cis_filesystem_var_tmp_nodev: true
+cis_filesystem_var_tmp_nosuid: true
+cis_filesystem_var_tmp_noexec: true
+
+# 1.1.10 Ensure /home is separate partition (audit only)
+cis_filesystem_check_home_partition: false
+
+# 1.1.15-1.1.17 Ensure /dev/shm options
+cis_filesystem_shm_nodev: true
+cis_filesystem_shm_nosuid: true
+cis_filesystem_shm_noexec: true
+
+# 1.5.3 Set permissions on bootloader config
+cis_filesystem_bootloader_permissions: true
+
+# 1.6.1.x Set sticky bit on world-writable directories
+cis_filesystem_set_sticky_bit: true

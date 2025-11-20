@@ -1,0 +1,31 @@
+---
+# CIS Level 1 - Section 5: Access, Authentication and Authorization
+
+# 5.3.1 Ensure password creation requirements
+cis_access_password_min_length: 14
+cis_access_password_min_complexity: 3  # dcredit, ucredit, ocredit, lcredit
+cis_access_password_history_count: 5
+cis_access_password_retry: 3
+
+# 5.4.1.x Ensure password expiration
+cis_access_password_max_days: 365
+cis_access_password_min_days: 1
+cis_access_password_warn_days: 7
+
+# 5.4.2 Ensure system accounts are secured
+cis_access_lock_system_accounts: true
+
+# 5.4.3 Ensure default group for root is GID 0
+cis_access_root_gid: true
+
+# 5.4.4 Ensure inactive password lock
+cis_access_inactive_account_days: 90
+
+# 5.4.5 Ensure default user shell timeout
+cis_access_shell_timeout: 900  # 15 minutes
+
+# 5.5 Ensure root login is restricted to system console
+cis_access_restrict_root_console: false  # Can break cloud-init
+
+# 5.6 Ensure access to su command is restricted
+cis_access_restrict_su: true

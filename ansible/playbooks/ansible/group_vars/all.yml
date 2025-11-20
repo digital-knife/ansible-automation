@@ -1,0 +1,8 @@
+---
+# Master role toggles
+ssh_hardening_enable: true
+firewall_enable: true
+cis_network_enable: true
+
+# Individual CIS network controls can be overridden
+# See roles/cis-network/defaults/main.yml for full list

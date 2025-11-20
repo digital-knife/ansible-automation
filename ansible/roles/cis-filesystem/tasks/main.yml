@@ -1,0 +1,136 @@
+---
+- name: Disable unused filesystems
+  block:
+    - name: Create modprobe.d directory
+      file:
+        path: /etc/modprobe.d
+        state: directory
+        mode: '0755'
+
+    - name: Disable cramfs filesystem
+      lineinfile:
+        path: /etc/modprobe.d/cramfs.conf
+        line: "install cramfs /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_cramfs | default(true)
+
+    - name: Disable freevxfs filesystem
+      lineinfile:
+        path: /etc/modprobe.d/freevxfs.conf
+        line: "install freevxfs /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_freevxfs | default(true)
+
+    - name: Disable jffs2 filesystem
+      lineinfile:
+        path: /etc/modprobe.d/jffs2.conf
+        line: "install jffs2 /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_jffs2 | default(true)
+
+    - name: Disable hfs filesystem
+      lineinfile:
+        path: /etc/modprobe.d/hfs.conf
+        line: "install hfs /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_hfs | default(true)
+
+    - name: Disable hfsplus filesystem
+      lineinfile:
+        path: /etc/modprobe.d/hfsplus.conf
+        line: "install hfsplus /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_hfsplus | default(true)
+
+    - name: Disable udf filesystem
+      lineinfile:
+        path: /etc/modprobe.d/udf.conf
+        line: "install udf /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_udf | default(true)
+
+    - name: Disable USB storage
+      lineinfile:
+        path: /etc/modprobe.d/usb-storage.conf
+        line: "install usb-storage /bin/true"
+        create: yes
+        mode: '0644'
+      when: cis_filesystem_disable_usb_storage | default(true)
+
+- name: Configure /tmp mount options
+  block:
+    - name: Check if /tmp is a separate partition
+      shell: mount | grep -E '\s/tmp\s'
+      register: tmp_partition
+      changed_when: false
+      failed_when: false
+
+    - name: Set /tmp mount options in fstab
+      replace:
+        path: /etc/fstab
+        regexp: '(\S+\s+/tmp\s+\S+\s+)(\S+)(\s+.*)$'
+        replace: '\1defaults,nodev,nosuid,noexec\3'
+      when: 
+        - tmp_partition.rc == 0
+        - cis_filesystem_tmp_nodev | default(true)
+      notify: remount tmp
+
+- name: Configure /var/tmp mount options
+  block:
+    - name: Check if /var/tmp is a separate partition
+      shell: mount | grep -E '\s/var/tmp\s'
+      register: var_tmp_partition
+      changed_when: false
+      failed_when: false
+
+    - name: Set /var/tmp mount options in fstab
+      replace:
+        path: /etc/fstab
+        regexp: '(\S+\s+/var/tmp\s+\S+\s+)(\S+)(\s+.*)$'
+        replace: '\1defaults,nodev,nosuid,noexec\3'
+      when: 
+        - var_tmp_partition.rc == 0
+        - cis_filesystem_var_tmp_nodev | default(true)
+      notify: remount var_tmp
+
+- name: Configure /dev/shm mount options
+  mount:
+    path: /dev/shm
+    src: tmpfs
+    fstype: tmpfs
+    opts: "defaults,nodev,nosuid,noexec"
+    state: mounted
+  when: 
+    - cis_filesystem_shm_nodev | default(true)
+
+- name: Set bootloader permissions
+  block:
+    - name: Set permissions on grub.cfg (RHEL/CentOS)
+      file:
+        path: /boot/grub2/grub.cfg
+        mode: '0600'
+      when: 
+        - ansible_os_family == "RedHat"
+        - cis_filesystem_bootloader_permissions | default(true)
+      failed_when: false
+
+    - name: Set permissions on grub.cfg (Ubuntu/Debian)
+      file:
+        path: /boot/grub/grub.cfg
+        mode: '0600'
+      when: 
+        - ansible_os_family == "Debian"
+        - cis_filesystem_bootloader_permissions | default(true)
+      failed_when: false
+
+- name: Set sticky bit on world-writable directories
+  shell: |
+    df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null | xargs -r chmod a+t
+  when: cis_filesystem_set_sticky_bit | default(true)
+  changed_when: false

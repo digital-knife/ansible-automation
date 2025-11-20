@@ -1,0 +1,41 @@
+---
+# CIS Level 1 - Section 3: Network Configuration
+
+# 3.1.1 Disable IP forwarding
+cis_network_disable_ip_forwarding: true
+
+# 3.1.2 Disable packet redirect sending
+cis_network_disable_packet_redirect_send: true
+
+# 3.2.1 Disable source routed packet acceptance
+cis_network_disable_source_routing: true
+
+# 3.2.2 Disable ICMP redirects
+cis_network_disable_icmp_redirects: true
+
+# 3.2.3 Disable secure ICMP redirects
+cis_network_disable_secure_icmp_redirects: true
+
+# 3.2.4 Log suspicious packets
+cis_network_log_suspicious_packets: true
+
+# 3.2.5 Enable ignore broadcast requests
+cis_network_ignore_broadcast_requests: true
+
+# 3.2.6 Enable bad error message protection
+cis_network_enable_bad_error_protection: true
+
+# 3.2.7 Enable RFC-recommended source route validation
+cis_network_enable_source_validation: true
+
+# 3.2.8 Enable TCP SYN cookies
+cis_network_enable_tcp_syn_cookies: true
+
+# 3.3.1 Disable IPv6 router advertisements
+cis_network_disable_ipv6_router_advertisements: true
+
+# 3.3.2 Disable IPv6 redirects
+cis_network_disable_ipv6_redirects: true
+
+# 3.3.3 Disable IPv6 (optional - can break things)
+cis_network_disable_ipv6: false

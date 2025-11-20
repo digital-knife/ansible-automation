@@ -1,0 +1,26 @@
+---
+- name: Include OS-specific service names
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Disable and stop unnecessary services
+  systemd:
+    name: "{{ item.name }}"
+    state: stopped
+    enabled: no
+    masked: yes
+  loop: "{{ services_to_disable }}"
+  when: 
+    - item.condition | default(true)
+    - ansible_service_mgr == "systemd"
+  failed_when: false  # Don't fail if service doesn't exist
+  register: service_disable_result
+
+- name: Remove unnecessary service packages (optional)
+  package:
+    name: "{{ item.package }}"
+    state: absent
+  loop: "{{ services_to_disable }}"
+  when:
+    - item.condition | default(true)
+    - item.remove_package | default(false)
+  failed_when: false

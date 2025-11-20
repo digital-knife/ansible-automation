@@ -1,0 +1,19 @@
+---
+# CIS Level 1 - Section 4: Logging and Auditing
+
+# 4.1.1.x rsyslog configuration
+cis_logging_rsyslog_enable: true
+cis_logging_rsyslog_remote_logging: false
+cis_logging_rsyslog_remote_host: ""
+
+# 4.2.1.x journald configuration
+cis_logging_journald_compress: true
+cis_logging_journald_persistent: true
+cis_logging_journald_forward_to_syslog: true
+
+# 4.2.3 Ensure permissions on log files
+cis_logging_set_log_permissions: true
+cis_logging_logfile_permissions: "0640"
+
+# 4.3 Ensure logrotate is configured
+cis_logging_logrotate_enable: true

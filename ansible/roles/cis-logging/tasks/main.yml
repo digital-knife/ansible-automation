@@ -1,0 +1,108 @@
+---
+- name: Configure rsyslog
+  block:
+    - name: Ensure rsyslog is installed
+      package:
+        name: rsyslog
+        state: present
+      when: cis_logging_rsyslog_enable | default(true)
+
+    - name: Ensure rsyslog is enabled and running
+      systemd:
+        name: rsyslog
+        state: started
+        enabled: yes
+      when: 
+        - cis_logging_rsyslog_enable | default(true)
+        - ansible_service_mgr == "systemd"
+
+    - name: Configure rsyslog file permissions
+      lineinfile:
+        path: /etc/rsyslog.conf
+        regexp: '^\$FileCreateMode'
+        line: '$FileCreateMode 0640'
+        insertafter: '^#### GLOBAL DIRECTIVES'
+      when: cis_logging_rsyslog_enable | default(true)
+      notify: restart rsyslog
+
+    - name: Configure rsyslog remote logging
+      lineinfile:
+        path: /etc/rsyslog.conf
+        line: "*.* @@{{ cis_logging_rsyslog_remote_host }}"
+        insertafter: '^#### RULES'
+      when: 
+        - cis_logging_rsyslog_enable | default(true)
+        - cis_logging_rsyslog_remote_logging | default(false)
+        - cis_logging_rsyslog_remote_host | length > 0
+      notify: restart rsyslog
+
+- name: Configure journald
+  block:
+    - name: Ensure systemd-journal directory exists
+      file:
+        path: /etc/systemd/journald.conf.d
+        state: directory
+        mode: '0755'
+
+    - name: Configure journald compression
+      lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?Compress='
+        line: 'Compress=yes'
+        insertafter: '^\[Journal\]'
+      when: cis_logging_journald_compress | default(true)
+      notify: restart journald
+
+    - name: Configure journald persistent storage
+      lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?Storage='
+        line: 'Storage=persistent'
+        insertafter: '^\[Journal\]'
+      when: cis_logging_journald_persistent | default(true)
+      notify: restart journald
+
+    - name: Configure journald forward to syslog
+      lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?ForwardToSyslog='
+        line: 'ForwardToSyslog=yes'
+        insertafter: '^\[Journal\]'
+      when: cis_logging_journald_forward_to_syslog | default(true)
+      notify: restart journald
+
+- name: Set permissions on log files
+  block:
+    - name: Find log files
+      find:
+        paths:
+          - /var/log
+        patterns: "*.log"
+        recurse: yes
+      register: log_files
+      when: cis_logging_set_log_permissions | default(true)
+
+    - name: Set permissions on log files
+      file:
+        path: "{{ item.path }}"
+        mode: "{{ cis_logging_logfile_permissions }}"
+      loop: "{{ log_files.files }}"
+      when: 
+        - cis_logging_set_log_permissions | default(true)
+        - log_files.files is defined
+
+- name: Configure logrotate
+  block:
+    - name: Ensure logrotate is installed
+      package:
+        name: logrotate
+        state: present
+      when: cis_logging_logrotate_enable | default(true)
+
+    - name: Ensure logrotate configuration exists
+      file:
+        path: /etc/logrotate.conf
+        state: touch
+        mode: '0644'
+      when: cis_logging_logrotate_enable | default(true)
+      changed_when: false

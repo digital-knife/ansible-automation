@@ -1,0 +1,148 @@
+---
+- name: Network hardening - IPv4
+  block:
+    - name: Disable IP forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      when: cis_network_disable_ip_forwarding | default(true)
+
+    - name: Disable packet redirect sending
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv4.conf.all.send_redirects
+        - net.ipv4.conf.default.send_redirects
+      when: cis_network_disable_packet_redirect_send | default(true)
+
+    - name: Disable source routed packet acceptance
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv4.conf.all.accept_source_route
+        - net.ipv4.conf.default.accept_source_route
+      when: cis_network_disable_source_routing | default(true)
+
+    - name: Disable ICMP redirects
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv4.conf.all.accept_redirects
+        - net.ipv4.conf.default.accept_redirects
+      when: cis_network_disable_icmp_redirects | default(true)
+
+    - name: Disable secure ICMP redirects
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv4.conf.all.secure_redirects
+        - net.ipv4.conf.default.secure_redirects
+      when: cis_network_disable_secure_icmp_redirects | default(true)
+
+    - name: Log suspicious packets
+      sysctl:
+        name: "{{ item }}"
+        value: '1'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv4.conf.all.log_martians
+        - net.ipv4.conf.default.log_martians
+      when: cis_network_log_suspicious_packets | default(true)
+
+    - name: Enable ignore broadcast requests
+      sysctl:
+        name: net.ipv4.icmp_echo_ignore_broadcasts
+        value: '1'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      when: cis_network_ignore_broadcast_requests | default(true)
+
+    - name: Enable bad error message protection
+      sysctl:
+        name: net.ipv4.icmp_ignore_bogus_error_responses
+        value: '1'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      when: cis_network_enable_bad_error_protection | default(true)
+
+    - name: Enable source route validation
+      sysctl:
+        name: "{{ item }}"
+        value: '1'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv4.conf.all.rp_filter
+        - net.ipv4.conf.default.rp_filter
+      when: cis_network_enable_source_validation | default(true)
+
+    - name: Enable TCP SYN cookies
+      sysctl:
+        name: net.ipv4.tcp_syncookies
+        value: '1'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      when: cis_network_enable_tcp_syn_cookies | default(true)
+
+- name: Network hardening - IPv6
+  block:
+    - name: Disable IPv6 router advertisements
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv6.conf.all.accept_ra
+        - net.ipv6.conf.default.accept_ra
+      when: cis_network_disable_ipv6_router_advertisements | default(true)
+
+    - name: Disable IPv6 redirects
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv6.conf.all.accept_redirects
+        - net.ipv6.conf.default.accept_redirects
+      when: cis_network_disable_ipv6_redirects | default(true)
+
+    - name: Disable IPv6 entirely
+      sysctl:
+        name: "{{ item }}"
+        value: '1'
+        state: present
+        reload: yes
+        sysctl_set: yes
+      loop:
+        - net.ipv6.conf.all.disable_ipv6
+        - net.ipv6.conf.default.disable_ipv6
+      when: cis_network_disable_ipv6 | default(false)
