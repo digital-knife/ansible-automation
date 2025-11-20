@@ -18,8 +18,8 @@ spec:
     parameters {
         string(
             name: 'inventory_path',
-            defaultValue: 'ansible/inventory/local.ini',
-            description: 'Path to Ansible inventory file'
+            defaultValue: 'inventory/local.ini',
+            description: 'Path to Ansible inventory file (relative to ansible/ directory)'
         )
         
         booleanParam(
@@ -66,6 +66,7 @@ spec:
                     '''
                     
                     sh 'ansible-galaxy collection install -r ansible/requirements.yml'
+                    sh 'ansible-galaxy collection install ansible.posix'
                     
                     echo "✓ Dependencies installed"
                 }
@@ -76,12 +77,14 @@ spec:
             steps {
                 container('ansible') {
                     sh """
+                        cd ansible
                         ansible-inventory -i ${params.inventory_path} --list
                     """
                     echo "✓ Inventory validated"
                 }
             }
         }
+        
         stage('Run Hardening') {
             steps {
                 container('ansible') {
