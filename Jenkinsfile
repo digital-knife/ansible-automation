@@ -82,12 +82,11 @@ spec:
                 }
             }
         }
-        
         stage('Run Hardening') {
             steps {
                 container('ansible') {
                     script {
-                        def ansibleCmd = "ansible-playbook ansible/playbooks/main.yml -i ${params.inventory_path}"
+                        def ansibleCmd = "ansible-playbook playbooks/main.yml -i ${params.inventory_path}"
                         
                         // Add dry-run flag
                         if (params.dry_run) {
@@ -110,6 +109,7 @@ spec:
                                 mkdir -p ~/.ssh
                                 cp \$SSH_KEY ~/.ssh/id_rsa
                                 chmod 600 ~/.ssh/id_rsa
+                                cd ansible
                                 ${ansibleCmd} --private-key ~/.ssh/id_rsa
                             """
                         }
