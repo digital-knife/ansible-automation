@@ -7,7 +7,7 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: python
+  - name: ansible
     image: python:3.9-slim
     command: ['cat']
     tty: true
@@ -16,31 +16,10 @@ spec:
     }
     
     parameters {
-        choice(
-            name: 'target_mode',
-            choices: ['manual', 'dynamic_aws', 'static_inventory'],
-            description: '''Target Selection Mode:
-- manual: Specify single IP/hostname/instance-id
-- dynamic_aws: Auto-discover EC2 instances by tags
-- static_inventory: Use predefined inventory file'''
-        )
-        
         string(
-            name: 'manual_target',
-            defaultValue: '',
-            description: 'Single target (IP/hostname/i-xxxxx) - only for manual mode'
-        )
-        
-        string(
-            name: 'aws_tag_filter',
-            defaultValue: 'Role=web',
-            description: 'AWS tag filter for dynamic mode (e.g., Role=web, Environment=prod)'
-        )
-        
-        string(
-            name: 'static_inventory_path',
+            name: 'inventory_path',
             defaultValue: 'ansible/inventory/local.ini',
-            description: 'Path to inventory file - only for static_inventory mode'
+            description: 'Path to Ansible inventory file'
         )
         
         booleanParam(
@@ -49,166 +28,107 @@ spec:
             description: 'Run in check mode (no actual changes)'
         )
         
-        booleanParam(
-            name: 'skip_validation',
-            defaultValue: false,
-            description: 'Skip validation after hardening'
+        string(
+            name: 'ansible_user',
+            defaultValue: 'root',
+            description: 'SSH user for target hosts'
+        )
+        
+        string(
+            name: 'extra_vars',
+            defaultValue: '',
+            description: 'Additional Ansible variables (key=value key2=value2)'
         )
     }
     
     environment {
-        REPORTS_DIR = 'reports'
         ANSIBLE_HOST_KEY_CHECKING = 'False'
+        ANSIBLE_FORCE_COLOR = 'true'
     }
     
     stages {
         stage('Setup') {
             steps {
-                container('python') {
+                container('ansible') {
                     echo "=================================================="
                     echo "Security Hardening Pipeline"
                     echo "=================================================="
-                    echo "Target Mode: ${params.target_mode}"
-                    
-                    script {
-                        if (params.target_mode == 'manual') {
-                            echo "Manual Target: ${params.manual_target}"
-                        } else if (params.target_mode == 'dynamic_aws') {
-                            echo "AWS Tag Filter: ${params.aws_tag_filter}"
-                        } else {
-                            echo "Static Inventory: ${params.static_inventory_path}"
-                        }
-                    }
-                    
+                    echo "Inventory: ${params.inventory_path}"
                     echo "Dry Run: ${params.dry_run}"
-                    echo "Skip Validation: ${params.skip_validation}"
+                    echo "SSH User: ${params.ansible_user}"
                     echo "=================================================="
                     
-                    // Install system dependencies
-                    sh """
+                    sh '''
                         apt-get update -qq
                         apt-get install -y -qq openssh-client sshpass > /dev/null 2>&1
-                    """
-                    
-                    // Setup Python environment
-                    sh """
                         python3 -m pip install --upgrade pip > /dev/null 2>&1
-                        pip install -r requirements.txt
-                        ansible-galaxy collection install -r ansible/requirements.yml
-                    """
+                        pip install ansible-core
+                    '''
+                    
+                    sh 'ansible-galaxy collection install -r ansible/requirements.yml'
                     
                     echo "✓ Dependencies installed"
                 }
             }
         }
         
-        stage('Validate Parameters') {
+        stage('Validate Inventory') {
             steps {
-                container('python') {
-                    script {
-                        if (params.target_mode == 'manual' && !params.manual_target) {
-                            error("Manual mode requires 'manual_target' parameter")
-                        }
-                        if (params.target_mode == 'static_inventory' && !params.static_inventory_path) {
-                            error("Static inventory mode requires 'static_inventory_path' parameter")
-                        }
-                    }
-                    echo "✓ Parameters validated"
+                container('ansible') {
+                    sh """
+                        ansible-inventory -i ${params.inventory_path} --list
+                    """
+                    echo "✓ Inventory validated"
                 }
             }
         }
         
         stage('Run Hardening') {
             steps {
-                container('python') {
+                container('ansible') {
                     script {
-                        def hardeningCmd = "python3 harden.py"
+                        def ansibleCmd = "ansible-playbook ansible/playbooks/main.yml -i ${params.inventory_path}"
                         
-                        // Build command based on mode
-                        if (params.target_mode == 'manual') {
-                            hardeningCmd += " --target ${params.manual_target}"
-                        } else if (params.target_mode == 'dynamic_aws') {
-                            hardeningCmd += " --dynamic-aws"
-                            env.TAG_FILTER = params.aws_tag_filter
-                        } else {
-                            hardeningCmd += " --inventory ${params.static_inventory_path}"
-                        }
-                        
-                        // Add optional flags
+                        // Add dry-run flag
                         if (params.dry_run) {
-                            hardeningCmd += " --dry-run"
+                            ansibleCmd += " --check"
                         }
                         
-                        echo "Executing: ${hardeningCmd}"
+                        // Add extra vars if provided
+                        if (params.extra_vars) {
+                            ansibleCmd += " --extra-vars '${params.extra_vars}'"
+                        }
+                        
+                        // Add SSH user
+                        ansibleCmd += " -u ${params.ansible_user}"
+                        
+                        echo "Executing: ${ansibleCmd}"
                         
                         // Copy SSH key from credential
                         withCredentials([file(credentialsId: 'docker-ssh-key', variable: 'SSH_KEY')]) {
                             sh """
-                                cp \$SSH_KEY /tmp/ssh-key
-                                chmod 600 /tmp/ssh-key
-                                ${hardeningCmd}
+                                mkdir -p ~/.ssh
+                                cp \$SSH_KEY ~/.ssh/id_rsa
+                                chmod 600 ~/.ssh/id_rsa
+                                ${ansibleCmd} --private-key ~/.ssh/id_rsa
                             """
                         }
                     }
                 }
             }
         }
-        
-        stage('Validate Hardening') {
-            when {
-                expression { params.skip_validation == false }
-            }
-            steps {
-                container('python') {
-                    script {
-                        def inventoryPath
-                        
-                        if (params.target_mode == 'manual') {
-                            // Use temp inventory created by harden.py
-                            inventoryPath = sh(
-                                script: "ls /tmp/ansible-*.ini 2>/dev/null | head -1 || echo 'ansible/inventory/local.ini'",
-                                returnStdout: true
-                            ).trim()
-                        } else if (params.target_mode == 'dynamic_aws') {
-                            inventoryPath = 'ansible/inventory/aws_ec2.yml'
-                        } else {
-                            inventoryPath = params.static_inventory_path
-                        }
-                        
-                        echo "Running validation against: ${inventoryPath}"
-                        sh "python3 scripts/validate.py --inventory ${inventoryPath}"
-                    }
-                }
-            }
-        }
-        
-        stage('Generate Report') {
-            when {
-                expression { params.skip_validation == false }
-            }
-            steps {
-                container('python') {
-                    sh 'python3 scripts/report.py reports/validation-report.json'
-                    echo "✓ HTML report generated"
-                }
-            }
-        }
     }
     
     post {
-        always {
-            archiveArtifacts artifacts: 'reports/*.json, reports/*.html, reports/*.log', allowEmptyArchive: true
-            
-            echo "=================================================="
-            echo "Pipeline Complete"
-            echo "Check archived artifacts for detailed results"
-            echo "=================================================="
-        }
         success {
+            echo "=================================================="
             echo "✓ Security hardening completed successfully"
+            echo "=================================================="
         }
         failure {
+            echo "=================================================="
             echo "✗ Security hardening failed - check logs above"
+            echo "=================================================="
         }
     }
 }
