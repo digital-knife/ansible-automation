@@ -18,7 +18,7 @@ spec:
     parameters {
         string(
             name: 'inventory_path',
-            defaultValue: 'inventory/local.ini',
+            defaultValue: 'inventory/jenkins-docker.ini',
             description: 'Path to Ansible inventory file (relative to ansible/ directory)'
         )
         
