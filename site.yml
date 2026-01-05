@@ -1,0 +1,10 @@
+---
+- name: Deploy CloudWatch Monitoring agents
+  hosts: env_dev
+  become: yes
+  # We pass the 'env' variable so the CloudWatch logs are named correctly in the UI.
+  vars:
+    env: dev
+
+  roles:
+    - cloudwatch_agent
