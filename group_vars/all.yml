@@ -1,0 +1,24 @@
+---
+# ===============================================================
+# GLOBAL ENVIRONMENT SETTINGS
+# ===============================================================
+env: dev
+ansible_python_interpreter: /usr/bin/python3.9
+
+# ===============================================================
+# APPLICATION SETTINGS
+# ===============================================================
+app_port: 80
+app_protocol: http
+
+# ===============================================================
+# SECURITY TOGGLES
+# ===============================================================
+cis_hardening_enabled: false
+ssh_root_login_allowed: no
+ssh_password_auth_allowed: no
+
+# ===============================================================
+# CLOUDWATCH SETTINGS
+# ===============================================================
+cw_agent_config_path: "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
