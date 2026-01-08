@@ -3,11 +3,10 @@ regions:
   - us-east-1
 
 #Ansible role for operations
-#iam_role_arn: arn:aws:iam::315735600075:role/AnsibleInventoryRole
 profile: test-automation-provisioner
 
 filters:
-  tag:Project: JR-Infrastructure
+  # tag:Project: JR-Infrastructure
   instance-state-name: [ 'running' ]
 
 # Automatically group hosts by their Tags and Environment

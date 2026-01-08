@@ -1,0 +1,72 @@
+---
+# ===============================================================
+# PHASE 1: SSH HARDENING
+# Secure the primary management protocol (even when using SSM)
+# ===============================================================
+
+- name: "SSH Hardening: Disable Root Login"
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+  notify: Restart SSH
+
+- name: "SSH Hardening: Disable Password Authentication"
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+  notify: Restart SSH
+
+# ===============================================================
+# PHASE 2: REDHAT / AMAZON LINUX 2023 SPECIFIC HARDENING
+# ===============================================================
+
+- name: "REDHAT: Install firewalld and python3 bindings"
+  dnf:
+    name:
+      - firewalld
+      - python3-firewall
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: "REDHAT: Ensure firewalld is started and enabled"
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: ansible_os_family == "RedHat"
+
+- name: "REDHAT: Allow HTTP/HTTPS through firewalld"
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: [ 'http', 'https' ]
+  when: ansible_os_family == "RedHat"
+
+# ===============================================================
+# PHASE 3: DEBIAN / UBUNTU SPECIFIC HARDENING
+# ===============================================================
+
+- name: "DEBIAN: Install UFW"
+  apt:
+    name: ufw
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: "DEBIAN: Allow HTTP/HTTPS through UFW"
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: [ '80', '443' ]
+  when: ansible_os_family == "Debian"
+
+- name: "DEBIAN: Enable UFW"
+  ufw:
+    state: enabled
+  when: ansible_os_family == "Debian"

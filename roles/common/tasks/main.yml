@@ -1,0 +1,21 @@
+---
+- name: "Include OS-specific variables"
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: "Update cache and install baseline packages (Debian/Ubuntu)"
+  apt:
+    name: "{{ baseline_packages }}"
+    state: latest
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: "Updates cache and install baseline packages (Amazon Linux/Redhat)"
+  dnf:
+    name: "{{ baseline_packages }}"
+    state: latest
+    update_cache: yes
+  when: ansible_os_family == "Redhat"
+
+- name: "Set timezone to UTC"
+  timezone: 
+    name: "{{ system_timezone | default('UTC') }}"

@@ -1,0 +1,15 @@
+---
+baseline_packages:
+  - git
+  - vim-enhanced
+  - htop
+  - zip
+  - unzip
+  - bind-utils
+  - net-tools       
+  - tcpdump         
+  - awscli          
+  - iotop
+  - jq
+  - firewalld
+  - python3-firewall

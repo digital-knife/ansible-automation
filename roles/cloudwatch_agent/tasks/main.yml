@@ -1,15 +1,9 @@
 ---
-- name: Download the CloudWatch Agent package
-  get_url:
-    url: "https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm"
-    dest: "/tmp/amazon-cloudwatch-agent.rpm"
-
-- name: Install the CloudWatch Agent
-  dnf:
-    name: "/tmp/amazon-cloudwatch-agent.rpm"
+- name: Install CloudWatch Agent from official S3 URL
+  yum:
+    name: "https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm"
     state: present
-    disable_gpg_check: no
-  become: yes
+    disable_gpg_check: yes # The AWS RPM is self-signed/Amazon-signed
 
 - name: Deploy CloudWatch Agent configuration
   template:

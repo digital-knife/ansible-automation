@@ -1,0 +1,13 @@
+---
+baseline_packages:
+  - git
+  - vim
+  - htop
+  - zip
+  - unzip
+  - dnsutils
+  - net-tools
+  - tcpdump
+  - curl
+  - iotop
+  - jq

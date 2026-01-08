@@ -1,10 +1,17 @@
 ---
-- name: Deploy CloudWatch Monitoring agents
-  hosts: env_dev
+- name: "Role Foundation for all Nodes"
+  hosts: all
   become: yes
-  # We pass the 'env' variable so the CloudWatch logs are named correctly in the UI.
   vars:
     env: dev
 
   roles:
+    - common
     - cloudwatch_agent
+    - security-hardening
+
+- name: "Web Tier: Nginx Reverse Proxy"
+  hosts: tag_Role_Web
+  become: yes
+  roles:
+    - nginx

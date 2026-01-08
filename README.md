@@ -1,4 +1,43 @@
-# Security Hardening Automation
+# AWS Hybrid-OS & Security Hardening Suite
+
+This repository provides an enterprise-grade automation framework for deploying secure, multi-tier infrastructure. It features a dual-layer security approach: a standard baseline for rapid deployment and a deep CIS-compliant hardening suite for production workloads.
+
+## Project Overview
+
+- **Infrastructure:** Provisioned via Terraform (VPC, ALB, EC2).
+- **Transport:** Zero-Trust connectivity via AWS Systems Manager (SSM). No Port 22/SSH required.
+- **Hybrid Support:** Unified support for Amazon Linux 2023 (dnf) and Debian/Ubuntu (apt).
+- **Two-Part Security:**
+    1. **Baseline Hardening:** Integrated role for standard SSH and Firewall setup.
+    2. **CIS Level 1 Compliance:** Advanced suite for deep OS-level hardening.
+
+## Architecture & Logic
+### 1. Zero-Trust Management
+The project utilizes `aws_ssm` as the Ansible connection plugin. This removes the need for SSH keys and public-facing management ports, relying on IAM-based identity for management.
+
+### 2. Dynamic Service Discovery
+Nginx configurations are dynamically generated. The Nginx role identifies backend App Tier nodes via AWS tags and updates the load-balancing pool automatically.
+
+## Part 1: Standard Infrastructure Automation
+
+### Directory Structure
+- **/terraform**: Provisioning logic for VPC and Compute.
+- **/ansible**: 
+  - `common`: OS Baseline and diagnostic utilities (htop, jq, tcpdump).
+  - `security-hardening`: Initial SSH lockdown and firewall initialization.
+  - `nginx`: Dynamic reverse proxy templates.
+  - `cloudwatch-agent`: Log and metric streaming.
+
+### Usage
+```bash
+# Provision Infra
+cd terraform && terraform apply
+
+# Apply Baseline
+ansible-playbook site.yml
+```
+
+## Security Hardening Automation - PART 2
 
 Automated Linux security baseline configuration with CIS Level 1 compliance controls.
 
@@ -44,23 +83,15 @@ Jenkinsfile                     # CI/CD pipeline
 ```
 
 ## Hardening Controls
-
 **CIS Section 1 - Filesystem:** Disable unused filesystems (cramfs, usb-storage, etc), mount options (noexec, nosuid), permissions
-
 **CIS Section 2 - Services:** Disable unnecessary services (avahi, cups, dhcpd, nfs, samba, squid, etc)
-
 **CIS Section 3 - Network:** Disable IP forwarding, packet redirects, ICMP controls, TCP SYN cookies
-
 **CIS Section 4 - Logging:** Configure rsyslog, journald, log file permissions
-
 **CIS Section 5 - Access:** Password complexity, password aging, inactive account locking (90 days), shell timeout
-
 **SSH Hardening:** Disable root login, disable password auth, limit retries, configure timeouts
-
 **Firewall:** Default deny incoming, allow SSH/HTTP/HTTPS
 
 ## Configuration
-
 All controls have individual toggles. Override defaults in `ansible/group_vars/all.yml`:
 ```yaml
 # Master role toggles
@@ -94,7 +125,7 @@ ansible-playbook playbooks/main.yml -i inventory/production.ini \
   --extra-vars "cis_network_disable_ipv6=true cis_services_disable_cups=false"
 ```
 
-## Jenkins Pipeline
+## Jenkins Pipeline (Optional)
 
 ### Setup
 

@@ -1,0 +1,16 @@
+upstream backend_servers {
+{% for host in groups['tag_Role_App'] %}
+    server {{ hostvars[host]['ansible_host'] }}:8080;
+{% endfor %}
+}
+
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        proxy_pass http://backend_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
