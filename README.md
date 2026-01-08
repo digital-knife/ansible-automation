@@ -84,11 +84,17 @@ Jenkinsfile                     # CI/CD pipeline
 
 ## Hardening Controls
 **CIS Section 1 - Filesystem:** Disable unused filesystems (cramfs, usb-storage, etc), mount options (noexec, nosuid), permissions
+
 **CIS Section 2 - Services:** Disable unnecessary services (avahi, cups, dhcpd, nfs, samba, squid, etc)
+
 **CIS Section 3 - Network:** Disable IP forwarding, packet redirects, ICMP controls, TCP SYN cookies
+
 **CIS Section 4 - Logging:** Configure rsyslog, journald, log file permissions
+
 **CIS Section 5 - Access:** Password complexity, password aging, inactive account locking (90 days), shell timeout
+
 **SSH Hardening:** Disable root login, disable password auth, limit retries, configure timeouts
+
 **Firewall:** Default deny incoming, allow SSH/HTTP/HTTPS
 
 ## Configuration
